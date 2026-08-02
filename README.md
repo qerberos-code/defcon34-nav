@@ -60,6 +60,12 @@ npm run preview
 
 The production build registers the offline service worker. Vite development mode intentionally does not.
 
+## License
+
+Waypoint is licensed under the [Apache License 2.0](LICENSE).
+
+The vendored Decimen optical-transfer source remains under its upstream MIT license. Third-party dependencies retain their respective licenses.
+
 ## Decimen attribution
 
 Waypoint vendors the MIT-licensed Decimen v0.2.0 optical-transfer core at commit `ed4cbcf558b80913fcba2e91193f71801f8e919c`. See [`src/decimen/UPSTREAM.md`](src/decimen/UPSTREAM.md) and [`src/decimen/LICENSE`](src/decimen/LICENSE).
