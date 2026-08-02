@@ -1,11 +1,25 @@
 # Waypoint
 
-> **Turn any floor-plan image into private, offline-capable event navigation—without beacons, accounts or dependable venue Wi-Fi.**
+> **Turn any floor-plan image into private, offline-capable indoor navigation—without beacons, accounts or dependable venue Wi-Fi.**
 
-Waypoint is an offline-first, checkpoint-based indoor event navigation system. Organizers turn a floor-plan image into a route graph, destinations, and static QR checkpoints that can be printed or displayed, then package the complete event as one portable `.navpack`. After loading and caching the Waypoint website once, visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or venue internet.
+Waypoint is an offline-first, checkpoint-based indoor navigation system for temporary events and permanent venues that need straightforward wayfinding without expensive positioning infrastructure. Operators turn a floor-plan image into a route graph, destinations, and static QR checkpoints that can be printed or displayed, then package the complete map as one portable `.navpack`. After loading and caching the Waypoint website once, visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or dependable venue internet.
 
 > [!IMPORTANT]
 > **The current web demo is not offline from first contact.** Each device must initially load the Waypoint website over the internet and wait for **Offline-ready**. After that one-time load, the cached app can reopen and operate without a connection, provided the visitor uses the same browser and site address and the browser has not removed the site's stored data.
+
+## Who Waypoint is for
+
+Waypoint targets places that need clear indoor routes but do not want to install or maintain Bluetooth beacons, UWB anchors, calibrated Wi-Fi positioning, visitor accounts, or continuous location tracking.
+
+Potential users include:
+
+- **Temporary events:** conferences, conventions, exhibitions, and trade shows where booths, routes, and closures may change between events or during setup.
+- **Healthcare and education:** hospitals, clinics, universities, colleges, and large campuses that need straightforward directions between known checkpoints and destinations.
+- **Culture and hospitality:** museums, galleries, hotels, resorts, and visitor attractions where static signs can remain installed and maps can be updated independently.
+- **Commercial and transport venues:** shopping centers, airports, terminals, and mixed-use developments with many entrances, services, and destinations.
+- **Public facilities:** civic buildings, libraries, community centers, government offices, and other public-facing indoor spaces.
+
+For permanent venues, checkpoint signs can remain printed or displayed in fixed locations while replacement navpacks publish updated departments, exhibits, tenants, gates, routes, or temporary closures. Waypoint supplements rather than replaces required emergency signage, accessibility planning, or venue safety systems.
 
 ## Why Waypoint
 
@@ -20,14 +34,14 @@ Waypoint is an offline-first, checkpoint-based indoor event navigation system. O
 - **No pairing or accounts.** Visitors neither connect directly to the organizer nor identify themselves.
 - **Unlimited late arrivals.** Decimen's repeating fountain stream lets a receiver begin collecting frames at any point in the broadcast.
 - **Exact package recovery.** Fountain coding tolerates missed or duplicated QR frames, and Waypoint hash-verifies the reconstructed package before import.
-- **Portable event bundle.** The floor plan, points of interest, routing graph, and checkpoint definitions travel together in one `.navpack` file.
+- **Portable venue bundle.** The floor plan, points of interest, routing graph, and checkpoint definitions travel together in one `.navpack` file.
 - **Low deployment cost.** The essential infrastructure is an entrance display for the animated navpack broadcast and static checkpoint codes printed or displayed around the venue.
 - **Accessible fallback.** Visitors can select a checkpoint manually if camera scanning is unavailable.
-- **Easy temporary updates.** Organizers can broadcast a replacement navpack containing changed booths, routes, or closures.
+- **Straightforward updates.** Operators can broadcast a replacement navpack containing changed booths, departments, exhibits, gates, tenants, routes, or closures.
 
 ## How it works
 
-1. An organizer uploads a venue floor plan and draws the walkable route graph.
+1. An event organizer or venue operator uploads a floor plan and draws the walkable route graph.
 2. They add destinations and place checkpoints, generating one static QR code for each known location.
 3. Waypoint exports a `.navpack` or broadcasts it as a repeating, fountain-coded Decimen QR stream.
 4. A visitor receives and verifies the navpack with their camera, or imports the file directly.
@@ -39,18 +53,18 @@ The optical channel is intentionally one-way and unencrypted: anyone who can see
 
 Checkpoint QR codes are **static location markers**. A checkpoint code does not animate, rotate, or transmit the navpack. It identifies one checkpoint already defined inside the imported event package. The same code can be printed on paper, mounted as venue signage, or shown as a still image on an existing digital display. It can remain in place for the event as long as that checkpoint identifier remains in the navpack.
 
-The animated Decimen QR stream serves a different purpose: it distributes the complete `.navpack` to visitors. After receiving the event once, visitors use the static checkpoint codes only to establish or update their known position. If scanning is unavailable, they can select the checkpoint manually using its human-readable label and code.
+The animated Decimen QR stream serves a different purpose: it distributes the complete `.navpack` to visitors. After receiving the map package once, visitors use the static checkpoint codes only to establish or update their known position. If scanning is unavailable, they can select the checkpoint manually using its human-readable label and code.
 
-## Updating an event
+## Updating an event or venue
 
 Waypoint updates are replacement packages, not live synchronization:
 
-1. The organizer edits the saved event in Organizer mode—for example, changing the route graph, destinations, closures, or checkpoints.
+1. The operator edits the saved map in Organizer mode—for example, changing the route graph, destinations, closures, or checkpoints.
 2. They create a fresh navpack using **Broadcast with light** or **Download .navpack**.
-3. Visitors explicitly receive or import that replacement package. Waypoint validates it and replaces the visitor's locally stored event.
+3. Visitors explicitly receive or import that replacement package. Waypoint validates it and replaces the visitor's locally stored map.
 4. Visitors who do not receive the replacement continue using their previously cached navpack. The current MVP does not notify them that a newer revision exists.
 
-Most event updates do **not** require replacing checkpoint signs. A checkpoint QR encodes the event ID and checkpoint short code, not the route graph or destination data. Existing printed or displayed codes remain usable when those two identifiers remain unchanged—even if booths, routes, labels elsewhere in the event, or the floor-plan image change.
+Most event or venue updates do **not** require replacing checkpoint signs. A checkpoint QR encodes the package's event ID and checkpoint short code, not the route graph or destination data. Existing printed or displayed codes remain usable when those two identifiers remain unchanged—even if booths, routes, other labels, or the floor-plan image change.
 
 The organizer should update the checkpoint kit when:
 
