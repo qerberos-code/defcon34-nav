@@ -1,14 +1,17 @@
 # Waypoint
 
-> **Turn any floor-plan image into private, offline event navigation—without beacons, accounts or dependable Wi-Fi.**
+> **Turn any floor-plan image into private, offline-capable event navigation—without beacons, accounts or dependable venue Wi-Fi.**
 
-Waypoint is an offline-first, checkpoint-based indoor event navigation system. Organizers turn a floor-plan image into a route graph, destinations, and printable QR checkpoints, then package the complete event as one portable `.navpack`. Visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or venue internet.
+Waypoint is an offline-first, checkpoint-based indoor event navigation system. Organizers turn a floor-plan image into a route graph, destinations, and printable QR checkpoints, then package the complete event as one portable `.navpack`. After loading and caching the Waypoint website once, visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or venue internet.
+
+> [!IMPORTANT]
+> **The current web demo is not offline from first contact.** Each device must initially load the Waypoint website over the internet and wait for **Offline-ready**. After that one-time load, the cached app can reopen and operate without a connection, provided the visitor uses the same browser and site address and the browser has not removed the site's stored data.
 
 ## Why Waypoint
 
-- **Works without venue internet.** Visitors can receive maps when Wi-Fi is unavailable, overloaded, or deliberately disabled.
+- **Works without venue internet after initial caching.** Visitors who loaded Waypoint beforehand can receive maps when venue Wi-Fi is unavailable, overloaded, or deliberately disabled.
 - **One-to-many distribution.** One display broadcasts the package to any number of visible receivers without sending a separate copy to each device.
-- **Reduced peak congestion.** At a 1,000-person event, distributing a 2 MB map optically could avoid about 2 GB of traffic—approximately 27 Mbps during a ten-minute arrival surge.
+- **Reduced peak congestion.** At a 1,000-person event, distributing a 2 MB map optically could avoid about 2 GB of navpack traffic—approximately 27 Mbps during a ten-minute arrival surge. This estimate does not include each visitor's initial website load.
 - **Private navigation.** Routing happens locally, so the venue does not learn visitors' destinations or movements.
 - **No positioning infrastructure.** Printed QR checkpoints replace Bluetooth beacons, UWB hardware, and Wi-Fi calibration.
 - **Easy organizer setup.** Upload a 2D floor plan, draw routes, place destinations, and print checkpoint signs.
@@ -34,7 +37,20 @@ The optical channel is intentionally one-way and unencrypted: anyone who can see
 
 ## Offline operation
 
-Open a production deployment once and wait for **Offline-ready**. Waypoint precaches the navigation shell, optical sender and receiver, decoder worker, and ZXing WASM assets. Imported organizer and visitor state is stored in IndexedDB. After caching, the app can be reopened from the same browser origin without a network connection, subject to the browser retaining site data.
+Waypoint is best described as **offline-capable after an initial online load**, not as a completely offline web application.
+
+Before arriving—or while a connection is still available—a visitor must open the production deployment and wait for **Offline-ready**. The service worker then precaches the navigation shell, optical sender and receiver, decoder worker, and ZXing WASM assets. The visitor does not need to open every route separately. Imported organizer and visitor state is stored in IndexedDB.
+
+After caching, the visitor can close the tab or browser and later reopen Waypoint without a network connection when all of the following remain true:
+
+- They return to the same site address and use the same browser profile.
+- They are not using private or incognito browsing.
+- The browser has retained Waypoint's service-worker cache and IndexedDB data.
+- A deployment update is not required; the last cached version continues to run offline.
+
+Clearing site data removes the cached application and imported events. Mobile browsers may also evict site data under storage pressure or after long periods of inactivity. A home-screen installation makes reopening easier, but it does not remove the initial online-load requirement or guarantee that browser-managed storage will never be evicted.
+
+Once the application itself is cached, receiving a `.navpack` through Decimen, scanning checkpoints, calculating routes, and reopening an imported event do not require venue internet. A first-time visitor who has never loaded Waypoint cannot install the website from the Decimen broadcast alone; the optical stream carries the event package, not the application.
 
 The static checkpoint scanner remains separate from Decimen reception. Checkpoint signs identify a known location; they do not contain the full event package.
 
