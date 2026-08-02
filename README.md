@@ -57,9 +57,9 @@ The animated Decimen QR stream serves a different purpose: it distributes the co
 
 ## Updating an event or venue
 
-Waypoint updates are replacement packages, not live synchronization:
+Waypoint updates are replacement packages, not live synchronization. An organizer can also use **Import .navpack** to reopen a previously exported package for editing on the same or another device. Import validation preserves the package's event ID, checkpoint IDs, and checkpoint short codes.
 
-1. The operator edits the saved map in Organizer mode—for example, changing the route graph, destinations, closures, or checkpoints.
+1. The operator resumes the locally saved map or imports an existing `.navpack` in Organizer mode, then changes the route graph, destinations, closures, or checkpoints.
 2. They create a fresh navpack using **Broadcast with light** or **Download .navpack**.
 3. Visitors explicitly receive or import that replacement package. Waypoint validates it and replaces the visitor's locally stored map.
 4. Visitors who do not receive the replacement continue using their previously cached navpack. The current MVP does not notify them that a newer revision exists.

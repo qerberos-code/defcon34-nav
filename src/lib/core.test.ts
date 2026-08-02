@@ -26,6 +26,11 @@ describe('geometry', () => {
 
 describe('navpack format', () => {
   it('round trips an exported package', () => { const pack = createDemoPack(); expect(parseNavPack(serializeNavPack(pack))).toEqual(pack); });
+  it('preserves event and checkpoint identities when reopened for editing', () => {
+    const pack = createDemoPack(); const imported = parseNavPack(serializeNavPack(pack));
+    expect(imported.event.id).toBe(pack.event.id);
+    expect(imported.checkpoints.map(({ id, shortCode }) => ({ id, shortCode }))).toEqual(pack.checkpoints.map(({ id, shortCode }) => ({ id, shortCode })));
+  });
   it('rejects an invalid version', () => { const pack = { ...createDemoPack(), version: 2 }; expect(() => validateNavPack(pack)).toThrow(/Unsupported/); });
   it('deleting a node leaves no orphaned references', () => {
     const result = deleteNodeSafely(createDemoPack(), 'n1').pack; const ids = new Set(result.nodes.map((node) => node.id));
