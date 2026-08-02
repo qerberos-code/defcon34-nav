@@ -41,6 +41,42 @@ Checkpoint QR codes are **static location markers**. A checkpoint code does not 
 
 The animated Decimen QR stream serves a different purpose: it distributes the complete `.navpack` to visitors. After receiving the event once, visitors use the static checkpoint codes only to establish or update their known position. If scanning is unavailable, they can select the checkpoint manually using its human-readable label and code.
 
+## Updating an event
+
+Waypoint updates are replacement packages, not live synchronization:
+
+1. The organizer edits the saved event in Organizer mode—for example, changing the route graph, destinations, closures, or checkpoints.
+2. They create a fresh navpack using **Broadcast with light** or **Download .navpack**.
+3. Visitors explicitly receive or import that replacement package. Waypoint validates it and replaces the visitor's locally stored event.
+4. Visitors who do not receive the replacement continue using their previously cached navpack. The current MVP does not notify them that a newer revision exists.
+
+Most event updates do **not** require replacing checkpoint signs. A checkpoint QR encodes the event ID and checkpoint short code, not the route graph or destination data. Existing printed or displayed codes remain usable when those two identifiers remain unchanged—even if booths, routes, labels elsewhere in the event, or the floor-plan image change.
+
+The organizer should update the checkpoint kit when:
+
+- A checkpoint is added and needs a new code.
+- A checkpoint is removed, making its old code invalid in the replacement navpack.
+- A checkpoint's short code changes.
+- A different event ID is used.
+
+The current editor does not expose direct editing for every destination and checkpoint property. Some changes require deleting and recreating the map object. After any such change, the organizer should confirm the resulting short code before deciding whether an installed checkpoint sign can be reused.
+
+## Route accuracy and positioning
+
+Waypoint does not automatically detect corridors, walls, or entrances from the floor-plan image. The image is a visual reference; route accuracy comes from the graph constructed and checked by the organizer.
+
+For reliable routes, the organizer should:
+
+1. Use a current floor plan and calibrate it between two points with a known real-world distance. Calibration affects distance estimates; it does not create or correct paths.
+2. Place route nodes along corridor centers, at intersections and turns, and at the actual usable entrances to rooms, booths, ramps, and exits.
+3. Connect only nodes that are genuinely walkable. Do not draw an edge through a wall, barrier, restricted area, or temporary closure.
+4. Place a destination at its visitor-facing access point. When it is created, Waypoint associates it with the nearest route node, so that nearby node must represent the correct entrance rather than merely the closest point geometrically.
+5. Install each static checkpoint code at the physical location represented on the map. Waypoint likewise associates a newly placed checkpoint with the nearest route node.
+6. Use **Preview** to test routes from multiple checkpoints to every important destination, checking for disconnected paths, incorrect entrances, missing turns, and implausible shortcuts.
+7. Walk-test representative routes in the real venue before publishing the navpack, then rebroadcast a replacement if the layout changes.
+
+Waypoint provides **discrete checkpoint positioning**, not continuous indoor tracking. Scanning or manually selecting a checkpoint establishes that known location as the route start. The app does not use indoor GPS to follow movement between signs; visitors can scan another static checkpoint whenever they need to re-establish their position.
+
 ## Offline operation
 
 Waypoint is best described as **offline-capable after an initial online load**, not as a completely offline web application.
