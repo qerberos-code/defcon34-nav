@@ -46,5 +46,5 @@ export interface NavPack {
   checkpoints: Checkpoint[];
 }
 
-export type EditorTool = 'select' | 'calibrate' | 'routes' | 'destinations' | 'checkpoints' | 'preview';
-export type Selection = { type: 'node' | 'edge' | 'destination' | 'checkpoint'; id: string } | null;
+export type EditorTool = 'select' | 'calibrate' | 'checkpoints' | 'routes' | 'preview';
+export type Selection = { type: 'node' | 'edge' | 'checkpoint'; id: string } | null;

@@ -25,12 +25,12 @@ describe('IndexedDB persistence', () => {
   test('persists organizer, visitor, and transfer draft values', async () => {
     const storage = await import('./storage');
     const pack = createDemoPack();
-    const transfer = createOpticalNavPack(pack);
+    const transfer = createOpticalNavPack(pack, pack.checkpoints[0]!.id);
     await storage.saveOrganizer(pack);
-    await storage.saveVisitor({ pack, checkpointId: pack.checkpoints[0]!.id });
+    await storage.saveVisitor({ pack, checkpointId: pack.checkpoints[0]!.id, targetCheckpointId: pack.checkpoints[1]!.id });
     await storage.saveTransferDraft(transfer);
     expect(await storage.loadOrganizer()).toEqual(pack);
-    expect(await storage.loadVisitor()).toEqual({ pack, checkpointId: pack.checkpoints[0]!.id });
+    expect(await storage.loadVisitor()).toEqual({ pack, checkpointId: pack.checkpoints[0]!.id, targetCheckpointId: pack.checkpoints[1]!.id });
     expect(await storage.loadTransferDraft()).toEqual(transfer);
   });
 

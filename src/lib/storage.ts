@@ -10,7 +10,13 @@ const TRANSFER = 'transfer';
 const ORGANIZER_KEY = 'waypoint:organizer:v1';
 const VISITOR_KEY = 'waypoint:visitor:v1';
 
-export interface VisitorState { pack: NavPack; checkpointId?: string; destinationId?: string }
+export interface VisitorState {
+  pack: NavPack;
+  checkpointId?: string;
+  targetCheckpointId?: string;
+  /** Retained so older stored visitor state can be read without migration loss. */
+  destinationId?: string;
+}
 
 function result<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {

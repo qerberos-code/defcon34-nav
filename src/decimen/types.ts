@@ -3,10 +3,17 @@ import type { CompressionMode } from './shared/protocol';
 
 export const NAVPACK_MIME = 'application/x-navpack' as const;
 
+export interface OpticalStartingCheckpoint {
+  id: string;
+  label: string;
+  shortCode: string;
+}
+
 export interface OpticalNavPack {
   name: string;
   mimeType: typeof NAVPACK_MIME;
   bytes: Uint8Array;
+  startingCheckpoint?: OpticalStartingCheckpoint;
 }
 
 export type OpticalTransferState =
@@ -14,6 +21,6 @@ export type OpticalTransferState =
   | { phase: 'preparing'; message: string }
   | { phase: 'transmitting'; frame: number; fps: number; originalSize: number; transmittedSize: number; compression: CompressionMode; estimatedSeconds: number }
   | { phase: 'receiving'; uniqueFrames: number; duplicateFrames: number; expectedFrames: number; progress: number; goodput: number; estimatedSeconds?: number; cameraStatus: string; advice?: string }
-  | { phase: 'complete'; pack: NavPack; file: OpticalNavPack }
+  | { phase: 'complete'; pack: NavPack; file: OpticalNavPack; startingCheckpoint?: OpticalStartingCheckpoint }
   | { phase: 'stopped'; reason: string }
   | { phase: 'error'; message: string };

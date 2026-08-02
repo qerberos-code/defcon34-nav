@@ -23,10 +23,13 @@ export function createDemoPack(): NavPack {
       { id: 'd-exit', name: 'South Exit', category: 'Exit', x: .5, y: .94, routeNodeId: 'n8' },
     ],
     checkpoints: [
-      { id: 'c-registration', label: 'Registration Desk', shortCode: 'REG', x: .12, y: .42, routeNodeId: 'n1', installationNote: 'Place beside the welcome desk.' },
-      { id: 'c-crossroads', label: 'Central Crossroads', shortCode: 'CTR', x: .5, y: .47, routeNodeId: 'n3' },
-      { id: 'c-booths', label: 'Booth Hall', shortCode: 'BTH', x: .88, y: .42, routeNodeId: 'n5' },
-      { id: 'c-food', label: 'Food Court', shortCode: 'FOD', x: .5, y: .78, routeNodeId: 'n8' },
+      { id: 'c-registration', label: 'Registration Desk', shortCode: 'REG', x: .12, y: .5, routeNodeId: 'n1', installationNote: 'Place beside the welcome desk.' },
+      { id: 'c-crossroads', label: 'Central Crossroads', shortCode: 'CTR', x: .5, y: .5, routeNodeId: 'n3' },
+      { id: 'c-booths', label: 'Booth Hall', shortCode: 'BTH', x: .88, y: .5, routeNodeId: 'n5' },
+      { id: 'c-stage', label: 'Main Stage', shortCode: 'STAGE', x: .5, y: .25, routeNodeId: 'n6' },
+      { id: 'c-booth8', label: 'Booth 8', shortCode: 'BTH8', x: .88, y: .25, routeNodeId: 'n7' },
+      { id: 'c-food', label: 'Food Court', shortCode: 'FOD', x: .5, y: .75, routeNodeId: 'n8' },
+      { id: 'c-restrooms', label: 'Restrooms', shortCode: 'WC', x: .88, y: .75, routeNodeId: 'n9' },
     ],
   };
 }

@@ -1,10 +1,40 @@
 ﻿import { describe, expect, test } from 'vitest';
 import { createDemoPack } from '../../demo';
-import { createOpticalNavPack, validateReceivedNavPack } from '../integration';
+import { canonicalizeOpticalNavPack, createOpticalNavPack, validateReceivedNavPack } from '../integration';
 import { LTDecoder, LTEncoder } from '../shared/fountain';
 import { fnv1a, packFile, packFrame, parseFrame, unpackFile } from '../shared/protocol';
 
 describe('Waypoint optical navpack', () => {
+  test('packs and verifies a map-only navpack', async () => {
+    const original = { ...createDemoPack(), nodes: [], edges: [], destinations: [], checkpoints: [] };
+    const navpack = createOpticalNavPack(original);
+    const packed = await packFile(navpack.name, navpack.mimeType, navpack.bytes);
+    const received = await validateReceivedNavPack(await unpackFile(packed.container));
+    expect(received.pack).toEqual(original);
+  });
+
+  test('applies a valid per-broadcast checkpoint and strips it from canonical copies', async () => {
+    const original = createDemoPack();
+    const navpack = createOpticalNavPack(original, 'c-registration');
+    expect(navpack.startingCheckpoint).toEqual({ id: 'c-registration', label: 'Registration Desk', shortCode: 'REG' });
+    expect(JSON.parse(new TextDecoder().decode(navpack.bytes))).toHaveProperty('_waypointTransfer.checkpointId', 'c-registration');
+
+    const packed = await packFile(navpack.name, navpack.mimeType, navpack.bytes);
+    const received = await validateReceivedNavPack(await unpackFile(packed.container));
+    expect(received.startingCheckpoint).toEqual(navpack.startingCheckpoint);
+    expect(received.pack).toEqual(original);
+    expect(JSON.parse(new TextDecoder().decode(received.file.bytes))).not.toHaveProperty('_waypointTransfer');
+    expect(JSON.parse(new TextDecoder().decode(canonicalizeOpticalNavPack(navpack).bytes))).not.toHaveProperty('_waypointTransfer');
+  });
+
+  test('rejects missing or forged starting checkpoints', async () => {
+    const original = createDemoPack();
+    expect(() => createOpticalNavPack(original, 'not-a-checkpoint')).toThrow(/included in this event/);
+    const forged = new TextEncoder().encode(JSON.stringify({ ...original, _waypointTransfer: { version: 1, checkpointId: 'not-a-checkpoint' } }));
+    const packed = await packFile('forged.navpack', 'application/x-navpack', forged);
+    await expect(validateReceivedNavPack(await unpackFile(packed.container))).rejects.toThrow(/not included/);
+  });
+
   test('reconstructs after shuffled, dropped, and duplicated frames', async () => {
     const original = createDemoPack();
     const navpack = createOpticalNavPack(original);
