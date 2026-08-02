@@ -13,7 +13,7 @@ Waypoint-specific adaptations live outside those preserved files:
 
 - `integration.ts` fixes the payload type to `application/x-navpack`, serializes NavPack v1, and validates received data with Waypoint.
 - `sender.ts` binds Decimen’s encoder and QR rasterizer to a React-owned canvas and defaults to 1465 bytes/frame, 24 FPS, ECC L.
-- `receiver.ts` binds camera capture and worker decoding to the React route, then applies Decimen’s container and checksum verification.
+- `receiver.ts` binds camera capture and worker decoding to Waypoint’s shared location/checkpoint QR scanner, then applies Decimen’s container and checksum verification. Static checkpoint payloads are routed outside the unchanged Decimen frame parser.
 - React screens own lifecycle, wake-lock release, visibility pausing, IndexedDB persistence, and navigation.
 
 The upstream golden tests are ported under `tests/` and run with Vitest.

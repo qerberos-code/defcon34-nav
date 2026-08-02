@@ -1,3 +1,4 @@
+import { classifyDecodedQr, LocationSessionPolicy, type ScannerIntent } from '../lib/scanned-qr';
 import { LTDecoder } from './shared/fountain';
 import { NoSignalHintTimer } from './shared/no-signal';
 import { estimateTransferProgress } from './shared/progress';
@@ -10,6 +11,15 @@ export interface ReceiverDiagnostics {
   goodput: number; estimatedSeconds?: number; cameraStatus: string; advice?: string;
 }
 export interface OpticalReceiverController { stop(reason?: string): void }
+export interface QrScannerOptions {
+  intent: ScannerIntent;
+  onProgress: (diagnostics: ReceiverDiagnostics) => void;
+  onComplete: (file: OpticalFile) => void;
+  onCheckpoint: (value: string) => void;
+  onUnsupported: (message: string) => void;
+  onLocationDetected: (sessionIdentity: string) => boolean;
+  onError: (error: Error) => void;
+}
 
 async function openCamera(): Promise<MediaStream> {
   const candidates: MediaStreamConstraints[] = [
@@ -26,63 +36,51 @@ async function openCamera(): Promise<MediaStream> {
   throw lastError ?? new Error('No camera is available.');
 }
 
-export async function startOpticalReceiver(
-  video: HTMLVideoElement,
-  onProgress: (diagnostics: ReceiverDiagnostics) => void,
-  onComplete: (file: OpticalFile) => void,
-  onError: (error: Error) => void,
-): Promise<OpticalReceiverController> {
+export async function startQrScanner(video: HTMLVideoElement, options: QrScannerOptions): Promise<OpticalReceiverController> {
   const stream = await openCamera();
-  video.srcObject = stream;
-  video.setAttribute('playsinline', '');
-  await video.play();
-  let stopped = false;
-  let frameId = 0;
-  let animation = 0;
-  let decoder: LTDecoder | undefined;
-  let identity = '';
-  let expectedFnv = 0;
-  const started = performance.now();
-  const noSignal = new NoSignalHintTimer(8000);
-  noSignal.cameraStarted(started);
-  const captureCanvas = document.createElement('canvas');
-  const context = captureCanvas.getContext('2d', { willReadFrequently: true });
-  if (!context) throw new Error('This browser cannot capture camera frames.');
+  video.srcObject = stream; video.setAttribute('playsinline', ''); await video.play();
+  let stopped = false; let frameId = 0; let animation = 0; let decoder: LTDecoder | undefined;
+  let identity = ''; let expectedFnv = 0; let receivingLocation = false;
+  const started = performance.now(); const noSignal = new NoSignalHintTimer(8000); noSignal.cameraStarted(started);
+  const captureCanvas = document.createElement('canvas'); const context = captureCanvas.getContext('2d', { willReadFrequently: true });
+  if (!context) { stream.getTracks().forEach((track) => track.stop()); throw new Error('This browser cannot capture camera frames.'); }
+  const sessions = new LocationSessionPolicy(); const reportedStatic = new Set<string>();
 
   const cleanup = () => {
-    stopped = true;
-    cancelAnimationFrame(animation);
-    pool.resize(0);
-    stream.getTracks().forEach((track) => track.stop());
-    video.pause();
-    video.srcObject = null;
+    if (stopped) return;
+    stopped = true; cancelAnimationFrame(animation); pool.resize(0);
+    stream.getTracks().forEach((track) => track.stop()); video.pause(); video.srcObject = null;
   };
-
   const report = () => {
-    const elapsed = Math.max(0.001, (performance.now() - started) / 1000);
-    const unique = decoder?.framesNew ?? 0;
+    const elapsed = Math.max(0.001, (performance.now() - started) / 1000); const unique = decoder?.framesNew ?? 0;
     const estimate = estimateTransferProgress(decoder?.k ?? 1, unique, elapsed, decoder?.solvedCount ?? 0);
-    onProgress({ uniqueFrames: unique, duplicateFrames: decoder?.framesDup ?? 0, expectedFrames: estimate.expectedFrames, progress: decoder ? estimate.fraction : 0, goodput: unique / elapsed, estimatedSeconds: estimate.etaSeconds, cameraStatus: 'Camera active', advice: noSignal.isVisible ? 'No signal yet: fill the frame, stabilize the phone, raise sender brightness, or lower sender density and FPS.' : undefined });
+    const waitingForLocation = options.intent === 'location' && !receivingLocation;
+    options.onProgress({ uniqueFrames: unique, duplicateFrames: decoder?.framesDup ?? 0, expectedFrames: estimate.expectedFrames, progress: decoder ? estimate.fraction : 0, goodput: unique / elapsed, estimatedSeconds: estimate.etaSeconds, cameraStatus: receivingLocation ? 'Receiving animated location QR' : waitingForLocation ? 'Looking for an animated location QR' : 'Looking for a checkpoint QR', advice: noSignal.isVisible ? (receivingLocation || waitingForLocation ? 'No location frames yet: fill the frame, stabilize the phone, raise sender brightness, or lower sender density and FPS.' : 'No checkpoint QR detected yet. Fill the frame, hold steady, and improve lighting.') : undefined });
   };
 
   const pool = new DecodeWorkerPool(createDecodeWorker, (bytes) => {
     if (stopped) return;
-    const parsed = parseFrame(bytes);
-    if (!parsed) return;
-    noSignal.frameDecoded();
-    const nextIdentity = streamIdentity(parsed.header);
-    if (!decoder || nextIdentity !== identity) {
-      identity = nextIdentity;
-      expectedFnv = parsed.header.payloadFnv;
-      decoder = new LTDecoder(parsed.header.k, parsed.header.blockLen, parsed.header.sessionId, parsed.header.totalLen);
+    const classified = classifyDecodedQr(bytes);
+    if (classified.kind === 'checkpoint') {
+      if (receivingLocation || reportedStatic.has(classified.value)) return;
+      reportedStatic.add(classified.value); options.onCheckpoint(classified.value); return;
     }
-    decoder.addFrame(parsed.header.seq, parsed.block);
-    report();
+    if (classified.kind === 'unsupported') {
+      if (receivingLocation || reportedStatic.has(classified.message)) return;
+      reportedStatic.add(classified.message); options.onUnsupported(classified.message); return;
+    }
+    if (!sessions.shouldReceive(classified.sessionIdentity, options.intent, options.onLocationDetected)) {
+      options.onProgress({ uniqueFrames: 0, duplicateFrames: 0, expectedFrames: 0, progress: 0, goodput: 0, cameraStatus: 'Looking for a checkpoint QR', advice: 'Location QR ignored. Continue scanning the static checkpoint QR.' }); return;
+    }
+    receivingLocation = true;
+    const parsed = parseFrame(classified.bytes); if (!parsed) return;
+    noSignal.frameDecoded(); const nextIdentity = streamIdentity(parsed.header);
+    if (!decoder || nextIdentity !== identity) { identity = nextIdentity; expectedFnv = parsed.header.payloadFnv; decoder = new LTDecoder(parsed.header.k, parsed.header.blockLen, parsed.header.sessionId, parsed.header.totalLen); }
+    decoder.addFrame(parsed.header.seq, parsed.block); report();
     if (!decoder.isComplete) return;
     const container = decoder.assemble();
-    if (!container || fnv1a(container) !== expectedFnv) { cleanup(); onError(new Error('The optical payload checksum did not match. Restart the transfer.')); return; }
-    cleanup();
-    void unpackFile(container).then(onComplete).catch((error: unknown) => onError(error instanceof Error ? error : new Error(String(error))));
+    if (!container || fnv1a(container) !== expectedFnv) { cleanup(); options.onError(new Error('The optical payload checksum did not match. Restart the transfer.')); return; }
+    cleanup(); void unpackFile(container).then(options.onComplete).catch((error: unknown) => options.onError(error instanceof Error ? error : new Error(String(error))));
   });
   pool.resize(Math.max(1, Math.min(2, navigator.hardwareConcurrency || 1)));
 
@@ -90,17 +88,18 @@ export async function startOpticalReceiver(
     if (stopped) return;
     if (noSignal.tick(performance.now())) report();
     if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && pool.busyCount < pool.size) {
-      const scale = Math.min(1, 1280 / Math.max(1, video.videoWidth));
-      const width = Math.max(1, Math.round(video.videoWidth * scale));
-      const height = Math.max(1, Math.round(video.videoHeight * scale));
+      const scale = Math.min(1, 1280 / Math.max(1, video.videoWidth)); const width = Math.max(1, Math.round(video.videoWidth * scale)); const height = Math.max(1, Math.round(video.videoHeight * scale));
       if (captureCanvas.width !== width || captureCanvas.height !== height) { captureCanvas.width = width; captureCanvas.height = height; }
-      context.drawImage(video, 0, 0, width, height);
-      const image = context.getImageData(0, 0, width, height);
+      context.drawImage(video, 0, 0, width, height); const image = context.getImageData(0, 0, width, height);
       pool.submit({ id: frameId++, buf: image.data.buffer, w: width, h: height }, [image.data.buffer]);
     }
     animation = requestAnimationFrame(capture);
   };
-  animation = requestAnimationFrame(capture);
-  report();
-  return { stop: () => cleanup() };
+  animation = requestAnimationFrame(capture); report();
+  return { stop: cleanup };
+}
+
+/** Backward-compatible Decimen-only entry point. */
+export async function startOpticalReceiver(video: HTMLVideoElement, onProgress: QrScannerOptions['onProgress'], onComplete: QrScannerOptions['onComplete'], onError: QrScannerOptions['onError']): Promise<OpticalReceiverController> {
+  return startQrScanner(video, { intent: 'location', onProgress, onComplete, onError, onCheckpoint: () => undefined, onUnsupported: () => undefined, onLocationDetected: () => true });
 }

@@ -16,7 +16,7 @@ export default function OpticalSender() {
   const [settings, setSettings] = useState(defaults);
   const [state, setState] = useState<OpticalTransferState>({ phase: 'preparing', message: 'Loading transfer draft…' });
 
-  useEffect(() => { void loadTransferDraft().then((draft) => { setPayload(draft); setState(draft ? { phase: 'idle' } : { phase: 'error', message: 'No prepared navpack was found. Return to Organizer and choose Broadcast with light.' }); }).catch((error: unknown) => setState({ phase: 'error', message: error instanceof Error ? error.message : 'The transfer draft could not be loaded.' })); }, []);
+  useEffect(() => { void loadTransferDraft().then((draft) => { setPayload(draft); setState(draft ? { phase: 'idle' } : { phase: 'error', message: 'No prepared navpack was found. Return to Organizer and choose Broadcast location QR.' }); }).catch((error: unknown) => setState({ phase: 'error', message: error instanceof Error ? error.message : 'The transfer draft could not be loaded.' })); }, []);
   const stop = (reason = 'Broadcast stopped.') => { controllerRef.current?.stop(); controllerRef.current = undefined; void wakeRef.current?.release(); wakeRef.current = undefined; setState({ phase: 'stopped', reason }); };
   useEffect(() => {
     const visibility = () => { if (document.hidden && controllerRef.current) stop('Broadcast paused because Waypoint is no longer visible.'); };
@@ -33,7 +33,7 @@ export default function OpticalSender() {
     } catch (error) { setState({ phase: 'error', message: error instanceof Error ? error.message : 'The optical broadcast could not start.' }); }
   };
   return <main className="transfer-screen sender-screen">
-    <header className="transfer-header"><a className="button" href="#/organizer">← Organizer</a><div><p className="eyebrow">Decimen optical transfer</p><h1>Broadcast with light</h1></div><span className="warning-chip">Unencrypted channel</span></header>
+    <header className="transfer-header"><a className="button" href="#/organizer">← Organizer</a><div><p className="eyebrow">Decimen optical transfer</p><h1>Broadcast location QR</h1></div><span className="warning-chip">Unencrypted channel</span></header>
     <section className="sender-stage"><canvas ref={canvasRef} aria-label="Animated QR transfer stream"/><div className="transfer-status">
       <strong>{state.phase === 'transmitting' ? `Broadcasting frame ${state.frame.toLocaleString()}` : state.phase === 'preparing' ? state.message : state.phase === 'stopped' ? state.reason : state.phase === 'error' ? state.message : 'Ready to broadcast'}</strong>
       {state.phase === 'transmitting' ? <div className="metric-grid"><span>Original<b>{formatBytes(state.originalSize)}</b></span><span>Transmitted<b>{formatBytes(state.transmittedSize)}</b></span><span>Compression<b>{state.compression === 'gzip' ? 'Gzip' : 'None'}</b></span><span>Est. receive<b>{formatDuration(state.estimatedSeconds)}</b></span></div> : null}

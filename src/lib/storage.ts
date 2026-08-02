@@ -94,6 +94,13 @@ async function save(key: string, value: unknown): Promise<void> {
   }
 }
 
+async function remove(key: string): Promise<void> {
+  const database = await openDatabase();
+  const transaction = database.transaction(STORE, 'readwrite');
+  transaction.objectStore(STORE).delete(key);
+  await finished(transaction);
+}
+
 export async function loadOrganizer(): Promise<NavPack | null> {
   const value = await read<unknown>(ORGANIZER);
   return value ? validateNavPack(value) : null;
@@ -104,5 +111,9 @@ export async function loadVisitor(): Promise<VisitorState | null> {
   return value ? { ...value, pack: validateNavPack(value.pack) } : null;
 }
 export async function saveVisitor(state: VisitorState): Promise<void> { await save(VISITOR, { ...state, pack: validateNavPack(state.pack) }); }
+export async function clearVisitor(): Promise<void> {
+  try { await remove(VISITOR); }
+  catch { throw new Error('The saved visitor location could not be removed.'); }
+}
 export async function loadTransferDraft(): Promise<OpticalNavPack | null> { return read<OpticalNavPack>(TRANSFER); }
 export async function saveTransferDraft(payload: OpticalNavPack): Promise<void> { await save(TRANSFER, payload); }

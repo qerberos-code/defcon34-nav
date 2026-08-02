@@ -57,4 +57,20 @@ describe('IndexedDB persistence', () => {
     await expect(storage.saveOrganizer(createDemoPack())).rejects.toThrow('Offline storage is full');
     IDBObjectStore.prototype.put = original;
   });
+
+  test('clears visitor data without removing organizer data', async () => {
+    const storage = await import('./storage'); const pack = createDemoPack();
+    await storage.saveOrganizer(pack); await storage.saveVisitor({ pack, checkpointId: 'c-registration', targetCheckpointId: 'c-booth8' });
+    await storage.clearVisitor();
+    expect(await storage.loadVisitor()).toBeNull();
+    expect(await storage.loadOrganizer()).toEqual(pack);
+  });
+
+  test('surfaces visitor deletion failures', async () => {
+    const storage = await import('./storage'); await storage.loadVisitor();
+    const original = IDBObjectStore.prototype.delete;
+    IDBObjectStore.prototype.delete = function () { throw new DOMException('blocked', 'UnknownError'); };
+    await expect(storage.clearVisitor()).rejects.toThrow('saved visitor location could not be removed');
+    IDBObjectStore.prototype.delete = original;
+  });
 });
