@@ -2,7 +2,7 @@
 
 > **Turn any floor-plan image into private, offline-capable event navigation—without beacons, accounts or dependable venue Wi-Fi.**
 
-Waypoint is an offline-first, checkpoint-based indoor event navigation system. Organizers turn a floor-plan image into a route graph, destinations, and printable QR checkpoints, then package the complete event as one portable `.navpack`. After loading and caching the Waypoint website once, visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or venue internet.
+Waypoint is an offline-first, checkpoint-based indoor event navigation system. Organizers turn a floor-plan image into a route graph, destinations, and static QR checkpoints that can be printed or displayed, then package the complete event as one portable `.navpack`. After loading and caching the Waypoint website once, visitors can receive that package from an animated Decimen QR broadcast and navigate locally without accounts, a backend, or venue internet.
 
 > [!IMPORTANT]
 > **The current web demo is not offline from first contact.** Each device must initially load the Waypoint website over the internet and wait for **Offline-ready**. After that one-time load, the cached app can reopen and operate without a connection, provided the visitor uses the same browser and site address and the browser has not removed the site's stored data.
@@ -13,27 +13,33 @@ Waypoint is an offline-first, checkpoint-based indoor event navigation system. O
 - **One-to-many distribution.** One display broadcasts the package to any number of visible receivers without sending a separate copy to each device.
 - **Reduced peak congestion.** At a 1,000-person event, distributing a 2 MB map optically could avoid about 2 GB of navpack traffic—approximately 27 Mbps during a ten-minute arrival surge. This estimate does not include each visitor's initial website load.
 - **Private navigation.** Routing happens locally, so the venue does not learn visitors' destinations or movements.
-- **No positioning infrastructure.** Printed QR checkpoints replace Bluetooth beacons, UWB hardware, and Wi-Fi calibration.
-- **Easy organizer setup.** Upload a 2D floor plan, draw routes, place destinations, and print checkpoint signs.
+- **No positioning infrastructure.** Static printed or displayed QR checkpoints replace Bluetooth beacons, UWB hardware, and Wi-Fi calibration.
+- **Easy organizer setup.** Upload a 2D floor plan, draw routes, place destinations, and print or display checkpoint signs.
 - **Accurate checkpoint positioning.** Scanning a sign establishes a known starting location without relying on inaccurate indoor GPS.
 - **Offline resilience.** Imported maps and routes continue working during network outages and emergencies.
 - **No pairing or accounts.** Visitors neither connect directly to the organizer nor identify themselves.
 - **Unlimited late arrivals.** Decimen's repeating fountain stream lets a receiver begin collecting frames at any point in the broadcast.
 - **Exact package recovery.** Fountain coding tolerates missed or duplicated QR frames, and Waypoint hash-verifies the reconstructed package before import.
 - **Portable event bundle.** The floor plan, points of interest, routing graph, and checkpoint definitions travel together in one `.navpack` file.
-- **Low deployment cost.** The essential physical infrastructure is an entrance display and printed checkpoint codes around the venue.
+- **Low deployment cost.** The essential infrastructure is an entrance display for the animated navpack broadcast and static checkpoint codes printed or displayed around the venue.
 - **Accessible fallback.** Visitors can select a checkpoint manually if camera scanning is unavailable.
 - **Easy temporary updates.** Organizers can broadcast a replacement navpack containing changed booths, routes, or closures.
 
 ## How it works
 
 1. An organizer uploads a venue floor plan and draws the walkable route graph.
-2. They add destinations and place checkpoints where printed signs will be installed.
+2. They add destinations and place checkpoints, generating one static QR code for each known location.
 3. Waypoint exports a `.navpack` or broadcasts it as a repeating, fountain-coded Decimen QR stream.
 4. A visitor receives and verifies the navpack with their camera, or imports the file directly.
-5. The visitor scans the nearest checkpoint sign, chooses a destination, and follows the locally calculated route.
+5. The visitor scans the nearest printed or displayed checkpoint code, chooses a destination, and follows the locally calculated route.
 
 The optical channel is intentionally one-way and unencrypted: anyone who can see the broadcast can receive the event package. It carries venue navigation data, not visitor identity or movement data.
+
+### Static checkpoints versus the animated transfer
+
+Checkpoint QR codes are **static location markers**. A checkpoint code does not animate, rotate, or transmit the navpack. It identifies one checkpoint already defined inside the imported event package. The same code can be printed on paper, mounted as venue signage, or shown as a still image on an existing digital display. It can remain in place for the event as long as that checkpoint identifier remains in the navpack.
+
+The animated Decimen QR stream serves a different purpose: it distributes the complete `.navpack` to visitors. After receiving the event once, visitors use the static checkpoint codes only to establish or update their known position. If scanning is unavailable, they can select the checkpoint manually using its human-readable label and code.
 
 ## Offline operation
 
@@ -52,7 +58,7 @@ Clearing site data removes the cached application and imported events. Mobile br
 
 Once the application itself is cached, receiving a `.navpack` through Decimen, scanning checkpoints, calculating routes, and reopening an imported event do not require venue internet. A first-time visitor who has never loaded Waypoint cannot install the website from the Decimen broadcast alone; the optical stream carries the event package, not the application.
 
-The static checkpoint scanner remains separate from Decimen reception. Checkpoint signs identify a known location; they do not contain the full event package.
+The static checkpoint scanner remains separate from Decimen reception. Printed and displayed checkpoint codes identify known locations; they do not contain the full event package.
 
 ## Run locally
 
