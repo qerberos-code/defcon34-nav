@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { buildDirections } from '../defcon/directions';
 import { buildDefconPack } from '../defcon/pack';
 import { createDemoPack } from '../demo';
 import { parseNavPack } from '../lib/navpack';
@@ -13,11 +14,30 @@ const WaypointScanner = lazy(() => import('./WaypointScanner'));
 
 interface Props { initialScannerIntent?: ScannerIntent; onLegacyScannerClose?: () => void }
 
+interface CheckpointOption { id: string; label: string; shortCode: string }
+function CheckpointSearch({ placeholder, options, valueId, disabled, onSelect }: { placeholder: string; options: CheckpointOption[]; valueId?: string; disabled?: boolean; onSelect: (id: string | undefined) => void }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.id === valueId);
+  if (selected && !open) return <div className="cp-selected"><span>{selected.label} · {selected.shortCode}</span><button type="button" className="button" onClick={() => { setQuery(''); setOpen(true); }}>Change</button></div>;
+  const needle = query.trim().toLowerCase();
+  const matches = (needle ? options.filter((option) => `${option.label} ${option.shortCode}`.toLowerCase().includes(needle)) : options).slice(0, 8);
+  return <div className="cp-search">
+    <input type="search" placeholder={placeholder} value={query} disabled={disabled} autoFocus={open} onChange={(event) => setQuery(event.target.value)} onFocus={() => setOpen(true)} />
+    {open || query ? <div className="cp-search-list">
+      {matches.map((option) => <button type="button" key={option.id} onClick={() => { onSelect(option.id); setOpen(false); setQuery(''); }}>{option.label} <small>{option.shortCode}</small></button>)}
+      {matches.length === 0 ? <span className="cp-search-empty">No match — try fewer letters.</span> : null}
+      {selected ? <button type="button" className="cp-search-cancel" onClick={() => { setOpen(false); setQuery(''); }}>Keep {selected.shortCode}</button> : null}
+    </div> : null}
+  </div>;
+}
+
 export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const [state, setState] = useState<VisitorState | null | undefined>(undefined);
   const [message, setMessage] = useState('');
   const [scannerIntent, setScannerIntent] = useState<ScannerIntent | null>(() => initialScannerIntent ?? null);
   const [defconLoading, setDefconLoading] = useState(false);
+  const [showAllCheckpoints, setShowAllCheckpoints] = useState(false);
   useEffect(() => {
     let current = true;
     void loadVisitor().then(async (saved) => {
@@ -56,6 +76,7 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const targetCheckpoint = state?.pack.checkpoints.find((item) => item.id === state.targetCheckpointId && item.id !== state.checkpointId);
   const route = useMemo(() => state && checkpoint && targetCheckpoint ? shortestRoute(state.pack, checkpoint.routeNodeId, targetCheckpoint.routeNodeId) : undefined, [state, checkpoint, targetCheckpoint]);
   const readiness = useMemo(() => state ? analyzeNavPackReadiness(state.pack) : undefined, [state]);
+  const directions = useMemo(() => state && route && checkpoint && targetCheckpoint ? buildDirections(state.pack, route.nodeIds, checkpoint.id, targetCheckpoint.id) : [], [state, route, checkpoint, targetCheckpoint]);
   const scanner = scannerIntent ? <Suspense fallback={<div className="modal-backdrop"><div className="scanner-card"><p>Loading offline QR decoder…</p></div></div>}><WaypointScanner intent={scannerIntent} visitorState={state ?? null} onApply={applyVisitorState} onClose={closeScanner} /></Suspense> : null;
 
   if (state === undefined) return <main className="visitor-empty"><div className="welcome-card"><p>Loading offline event…</p></div>{scanner}</main>;
@@ -65,12 +86,14 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const canChooseTarget = state.pack.checkpoints.length > 1;
   const targetOptions = destinationCheckpointOptions(state);
   const mapSelection = targetCheckpoint ? { type: 'checkpoint' as const, id: targetCheckpoint.id } : checkpoint ? { type: 'checkpoint' as const, id: checkpoint.id } : undefined;
+  const routeNodeIds = new Set(route?.nodeIds ?? []);
+  const visibleCheckpointIds = showAllCheckpoints ? ('all' as const) : new Set(state.pack.checkpoints.filter((item) => item.id === checkpoint?.id || item.id === targetCheckpoint?.id || routeNodeIds.has(item.routeNodeId)).map((item) => item.id));
   return <main className="visitor-layout">
-    <section className="visitor-map"><div className="mobile-event-title"><p className="eyebrow">{readiness?.mode === 'map-only' ? 'Map view' : 'Checkpoint navigation'}</p><h1>{state.pack.event.name}</h1></div><MapCanvas pack={state.pack} route={route?.points} selection={mapSelection} currentCheckpointId={checkpoint?.id} targetCheckpointId={targetCheckpoint?.id} />{checkpoint ? <div className="you-are-here"><span className="pulse-dot"/>You are here: <strong>{checkpoint.label}</strong></div> : null}</section>
+    <section className="visitor-map"><div className="mobile-event-title"><p className="eyebrow">{readiness?.mode === 'map-only' ? 'Map view' : 'Checkpoint navigation'}</p><h1>{state.pack.event.name}</h1></div><label className="map-show-all"><input type="checkbox" checked={showAllCheckpoints} onChange={(event) => setShowAllCheckpoints(event.target.checked)} /> Show all checkpoints</label><MapCanvas pack={state.pack} route={route?.points} selection={mapSelection} currentCheckpointId={checkpoint?.id} targetCheckpointId={targetCheckpoint?.id} visibleCheckpointIds={visibleCheckpointIds} markerStyle="minimal" fitPoints={route?.points} />{checkpoint ? <div className="you-are-here"><span className="pulse-dot"/>You are here: <strong>{checkpoint.label}</strong></div> : null}</section>
     <aside className="visitor-controls"><div><p className="eyebrow">{readiness?.mode === 'map-only' ? 'Map view' : 'Checkpoint navigation'}</p><h1>{state.pack.event.name}</h1></div>{message ? <div className="notice">{message}</div> : null}
       {readiness?.mode === 'map-only' ? <div className="visitor-capability-card"><p className="eyebrow">Map only</p><h2>Visual map guidance</h2><p>This package contains the floor plan without checkpoint positioning or calculated routes.</p></div> : readiness?.mode === 'partial-navigation' ? <div className="notice warning">Some checkpoints or routes are unavailable. The floor plan and available checkpoint markers can still be used for visual guidance.</div> : null}
-      {hasCheckpoints ? <><div className="visitor-step"><div className="step-number">1</div><div><h2>Where are you?</h2><p>Pick the nearest labeled area on the map.</p></div></div><label className="field"><span>Current checkpoint</span><select value={state.checkpointId ?? ''} onChange={(event) => { const checkpointId = event.target.value || undefined; void applyVisitorState(selectCurrentCheckpoint(state, checkpointId), checkpointId ? 'Current checkpoint updated.' : 'Current checkpoint cleared.'); }}><option value="">Choose your location…</option>{state.pack.checkpoints.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.shortCode}</option>)}</select></label></> : <div className="visitor-capability-card"><p className="eyebrow">No checkpoint nodes</p><h2>Visual map guidance only</h2><p>The organizer did not include selectable checkpoint locations in this package.</p></div>}
-      {canChooseTarget ? <><div className="divider"/><div className="visitor-step"><div className="step-number">2</div><div><h2>Where are you going?</h2><p>Choose another labeled checkpoint as your destination.</p></div></div><label className="field"><span>Destination checkpoint</span><select disabled={!checkpoint} value={targetCheckpoint?.id ?? ''} onChange={(event) => { const targetCheckpointId = event.target.value || undefined; void applyVisitorState({ ...state, targetCheckpointId }, targetCheckpointId ? 'Destination checkpoint selected.' : 'Destination checkpoint cleared.'); }}><option value="">{checkpoint ? 'Choose destination…' : 'Choose your current checkpoint first'}</option>{targetOptions.map((item) => <option key={item.id} value={item.id}>{item.label} · {item.shortCode}</option>)}</select></label><div className={`visitor-route-card ${route ? 'active' : ''}`}>{checkpoint && targetCheckpoint ? route ? <><span className="route-icon">↗</span><div><small>Shortest route to {targetCheckpoint.label}</small><strong>{route.distanceMeters === null ? 'Route ready' : `${route.distanceMeters.toFixed(1)} metres`}</strong><span>{route.distanceMeters === null ? 'Approximate distance' : `About ${Math.max(1, Math.ceil(route.distanceMeters / 70))} minute walk`}</span></div></> : <div><strong>No calculated route</strong><span>{checkpoint.label} and {targetCheckpoint.label} are in disconnected route groups. Use their markers and the floor plan for visual guidance.</span></div> : <span>Choose your current checkpoint and a destination checkpoint to see a route.</span>}</div></> : hasCheckpoints ? <div className="visitor-capability-card single-checkpoint"><p className="eyebrow">One checkpoint available</p><h2>No route target yet</h2><p>This map can establish your location, but it needs at least two checkpoints for calculated navigation.</p></div> : null}
+      {hasCheckpoints ? <><div className="visitor-step"><div className="step-number">1</div><div><h2>Where are you?</h2><p>Pick the nearest labeled area on the map.</p></div></div><div className="field"><span>Current location</span><CheckpointSearch placeholder="Search — e.g. registration, track 1…" options={state.pack.checkpoints} valueId={state.checkpointId} onSelect={(checkpointId) => void applyVisitorState(selectCurrentCheckpoint(state, checkpointId), checkpointId ? 'Current checkpoint updated.' : 'Current checkpoint cleared.')} /></div></> : <div className="visitor-capability-card"><p className="eyebrow">No checkpoint nodes</p><h2>Visual map guidance only</h2><p>The organizer did not include selectable checkpoint locations in this package.</p></div>}
+      {canChooseTarget ? <><div className="divider"/><div className="visitor-step"><div className="step-number">2</div><div><h2>Where are you going?</h2><p>Choose another labeled checkpoint as your destination.</p></div></div><div className="field"><span>Destination</span><CheckpointSearch placeholder={checkpoint ? 'Search — e.g. ai village, packet…' : 'Pick your current location first'} options={targetOptions} valueId={targetCheckpoint?.id} disabled={!checkpoint} onSelect={(targetCheckpointId) => void applyVisitorState({ ...state, targetCheckpointId }, targetCheckpointId ? 'Destination checkpoint selected.' : 'Destination checkpoint cleared.')} /></div><div className={`visitor-route-card ${route ? 'active' : ''}`}>{checkpoint && targetCheckpoint ? route ? <><span className="route-icon">↗</span><div><small>Shortest route to {targetCheckpoint.label}</small><strong>{route.distanceMeters === null ? 'Route ready' : `${route.distanceMeters.toFixed(1)} metres`}</strong><span>{route.distanceMeters === null ? 'Approximate distance' : `About ${Math.max(1, Math.ceil(route.distanceMeters / 70))} minute walk`}</span></div></> : <div><strong>No calculated route</strong><span>{checkpoint.label} and {targetCheckpoint.label} are in disconnected route groups. Use their markers and the floor plan for visual guidance.</span></div> : <span>Choose your current checkpoint and a destination checkpoint to see a route.</span>}</div>{directions.length > 0 ? <ol className="route-steps">{directions.map((step, index) => <li key={index}>{step}</li>)}</ol> : null}</> : hasCheckpoints ? <div className="visitor-capability-card single-checkpoint"><p className="eyebrow">One checkpoint available</p><h2>No route target yet</h2><p>This map can establish your location, but it needs at least two checkpoints for calculated navigation.</p></div> : null}
       <div className="visitor-footer"><button className="button danger-text full" onClick={() => void exitLocation()}>Exit Location</button></div>
     </aside>{scanner}
   </main>;

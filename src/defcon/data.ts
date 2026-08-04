@@ -10,12 +10,16 @@ type Floor = 1 | 2 | 3;
 // --- Corridor spine nodes ---------------------------------------------------
 
 const spineNodes: Record<Floor, RouteNode[]> = {
-  // Floor 1 — wedge shape, main corridor tilts right going down; f1-atrium doubles as the Floor 1 escalator landing.
+  // Floor 1 — wedge shape. Spine traced from the poster's actual white aisle bands
+  // (300dpi crop check, 2026-08-04): a west-edge corridor left of the hall blocks,
+  // plus horizontal aisles between the rows; f1-a*e nodes are the aisles' east ends.
+  // f1-atrium doubles as the Floor 1 escalator landing.
   1: [
-    { id: 'f1-s1', x: .20, y: .15 }, { id: 'f1-s2', x: .22, y: .22 }, { id: 'f1-s3', x: .26, y: .38 },
-    { id: 'f1-s4', x: .29, y: .47 }, { id: 'f1-s5', x: .31, y: .55 }, { id: 'f1-s6', x: .33, y: .62 },
-    { id: 'f1-s7', x: .35, y: .665 }, { id: 'f1-s8', x: .37, y: .74 }, { id: 'f1-s9', x: .39, y: .80 },
-    { id: 'f1-s10', x: .41, y: .85 },
+    { id: 'f1-s1', x: .20, y: .15 }, { id: 'f1-s2', x: .22, y: .22 },
+    { id: 'f1-s3', x: .205, y: .437 }, { id: 'f1-s4', x: .215, y: .527 }, { id: 'f1-s5', x: .225, y: .592 },
+    { id: 'f1-s6', x: .26, y: .710 }, { id: 'f1-s7', x: .29, y: .832 },
+    { id: 'f1-a1e', x: .39, y: .44 }, { id: 'f1-a2e', x: .42, y: .53 }, { id: 'f1-a3e', x: .44, y: .59 },
+    { id: 'f1-a4e', x: .46, y: .71 }, { id: 'f1-a5e', x: .48, y: .832 },
     { id: 'f1-atrium', x: .19, y: .60 },
   ],
   // Floor 2 — A-shape; f2-entry is the escalator landing, left leg climbs to the apex, right leg descends.
@@ -37,7 +41,8 @@ const spineNodes: Record<Floor, RouteNode[]> = {
 
 // Chains of node ids joined by consecutive edges. The final chain (the escalators) holds the ONLY cross-floor edges.
 const spineChains: string[][] = [
-  ['f1-s1', 'f1-s2', 'f1-s3', 'f1-s4', 'f1-s5', 'f1-s6', 'f1-s7', 'f1-s8', 'f1-s9', 'f1-s10'],
+  ['f1-s1', 'f1-s2', 'f1-s3', 'f1-s4', 'f1-s5', 'f1-s6', 'f1-s7'],
+  ['f1-s3', 'f1-a1e'], ['f1-s4', 'f1-a2e'], ['f1-s5', 'f1-a3e'], ['f1-s6', 'f1-a4e'], ['f1-s7', 'f1-a5e'],
   ['f1-atrium', 'f1-s5'],
   ['f2-entry', 'f2-l1', 'f2-l2', 'f2-l3', 'f2-l4', 'f2-l5', 'f2-l6', 'f2-r1', 'f2-r2', 'f2-r3', 'f2-r4'],
   ['f2-l4', 'f2-r2'], // crossbar between the legs near Workshops
@@ -51,7 +56,7 @@ interface Poi { code: string; label: string; x: number; y: number; floor: Floor;
 
 const pois: Poi[] = [
   // Floor 1 — west chain: Registration → Chillout → Food Court → Atrium, plus Registration ↔ south spine.
-  { code: 'REG', label: 'Registration', x: .067, y: .90, floor: 1, attachTo: ['poi-chill', 'f1-s10'] },
+  { code: 'REG', label: 'Registration', x: .067, y: .90, floor: 1, attachTo: ['poi-chill', 'f1-s7'] },
   { code: 'CHILL', label: 'Chillout Lounge', x: .082, y: .807, floor: 1, attachTo: ['poi-food'] },
   { code: 'FOOD', label: 'Food Court', x: .193, y: .733, floor: 1, attachTo: ['f1-atrium'] },
   { code: 'MERCH', label: 'Merch', x: .186, y: .141, floor: 1 },

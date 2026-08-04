@@ -38,6 +38,9 @@ Phases B and C have disjoint file ownership and a declared interface → can run
 ## Phase E — native mobile wrap (added 2026-08-04 via Stage 7 refinement)
 Capacitor wraps the built web app for iOS + Android; web assets bundle into the native app (offline without SW). Steps: install @capacitor/{core,cli,ios,android} → `cap init` (appId com.qerberos.dc34nav, webDir dist) → `npm run build` → `cap add ios` / `cap add android` → iOS: NSCameraUsageDescription in Info.plist, verify in Simulator; Android: project generated locally, built on the Ryzen box (Android SDK lives there). Device installs: iOS via Xcode signing (user's Apple account), Android via sideloaded APK. Verify: app boots in iOS Simulator, DC34 map loads, route renders — all with network disabled.
 
+## Phase F — clean map UX (added 2026-08-04, user feedback: "C marks block the map")
+Marker soup made the poster unreadable — the Stage-4 review predicted this (finding #8). Fix: visitor map renders NO checkpoint markers by default; only the current location, the destination, and on-route escalator markers appear once chosen, with an optional "show all" toggle. Destination/location selection moves from 61-item native pickers to type-to-filter search lists. On route selection the map auto-zooms to the route's bounding box. Organizer mode keeps full marker rendering. Files: MapCanvas.tsx (marker filter prop + fit-to-route), Visitor.tsx (search UI), styles.css.
+
 ## Review log (Stage 4, 2026-08-04)
 Cold review found 2 blockers (jpg missing from PWA precache glob + no owner for vite.config.ts; pack.test.ts unfetchable in node vitest) and minors (shortCodes, dead destinations, dims-as-comment, base path, C-branch typecheck, label density, stale-state reachability). All folded into the phases above.
 

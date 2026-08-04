@@ -7,8 +7,8 @@ Offline indoor navigation for **DEF CON 34** at the Las Vegas Convention Center 
 Built on [**Waypoint**](https://github.com/Pizzawookiee/Waypoint) (see Credits).
 
 <p align="center">
-  <img src="docs/screenshots/route-overview.png" width="45%" alt="Cross-floor route from Track 4 to Packet Hacking Village on the DEF CON 34 LVCC map" />
-  <img src="docs/screenshots/route-zoomed.png" width="45%" alt="Zoomed map view showing readable booth-level detail and the route line" />
+  <img src="docs/screenshots/route-overview.png" width="45%" alt="Clean map with dot pins and a dashed cross-floor route from Track 4 to Packet Hacking Village" />
+  <img src="docs/screenshots/route-zoomed.png" width="45%" alt="Step-by-step walking directions for the selected route" />
 </p>
 
 ## How to use
@@ -22,15 +22,17 @@ Built on [**Waypoint**](https://github.com/Pizzawookiee/Waypoint) (see Credits).
 
 ### Reading the map
 
+The map stays clean — the poster's own printed names label every area. Markers only appear for your route:
+
 | Symbol | Meaning |
 |---|---|
-| ▲ dark triangle with **C** | A **checkpoint** — a labeled place you can select as your location or destination (every village, track, stage, and service is one) |
-| ▲ **gold** triangle | **You are here** — your currently selected checkpoint |
-| ▲ highlighted triangle | Your **destination** |
-| **Orange line** | Your shortest walking route |
-| *Escalators (Floor 1/2/3)* checkpoints | The floor connectors — the only places routes jump between the three floor drawings |
+| **Gold dot** | You are here |
+| **Red dot** | Your destination |
+| **Dark dots** | Escalators your route passes through |
+| **Dashed orange line** | Your route — *directional guidance*, not an exact traced walkway: follow its direction along the open aisles and signage |
+| ☑ Show all checkpoints | Optional toggle to display every selectable place |
 
-The "C" symbol comes from the underlying Waypoint engine, where checkpoints double as printed QR signs. DEF CON has no such signage, so in this app they are simply the selectable places on the map — QR scanning may return as a future feature.
+Below the route card, a numbered **step list** gives succinct walking directions (which halls to cross, where to take the escalators).
 
 Everything is stored on-device; the map keeps working in the deepest Wi-Fi dead zone in Hall 3.
 
