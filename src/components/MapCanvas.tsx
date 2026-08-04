@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { EditorTool, NavPack, Point, Selection } from '../types';
 
 interface Props {
@@ -19,6 +19,20 @@ interface Props {
 
 export function MapCanvas({ pack, activeTool = 'select', selection, route, calibrationPoints = [], interactive = false, showGraph = false, currentCheckpointId, targetCheckpointId, onMapClick, onNodeActivate, onObjectSelect, onMoveNode }: Props) {
   const dragging = useRef<string | null>(null);
+  const viewport = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  const applyZoom = (next: number) => {
+    const clamped = Math.max(1, Math.min(6, next));
+    const element = viewport.current;
+    if (element && clamped !== zoom) {
+      // Keep the viewport centre stable while the content resizes around it.
+      const factor = clamped / zoom;
+      const centerX = element.scrollLeft + element.clientWidth / 2;
+      const centerY = element.scrollTop + element.clientHeight / 2;
+      requestAnimationFrame(() => { element.scrollLeft = centerX * factor - element.clientWidth / 2; element.scrollTop = centerY * factor - element.clientHeight / 2; });
+    }
+    setZoom(clamped);
+  };
   const pointerPoint = (event: React.MouseEvent<SVGSVGElement> | React.PointerEvent<SVGSVGElement>): Point => {
     const rect = event.currentTarget.getBoundingClientRect();
     return { x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)), y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)) };
@@ -32,7 +46,9 @@ export function MapCanvas({ pack, activeTool = 'select', selection, route, calib
   const toY = (value: number) => value * imageHeight;
   const routeText = route?.map((point) => `${toX(point.x)},${toY(point.y)}`).join(' ');
 
-  return <div className="map-frame" aria-label="Floor plan map" style={{ aspectRatio: `${imageWidth} / ${imageHeight}` }}>
+  return <div className="map-shell">
+    <div className="map-viewport" ref={viewport}>
+    <div className="map-frame" aria-label="Floor plan map" style={{ aspectRatio: `${imageWidth} / ${imageHeight}`, width: `${zoom * 100}%` }}>
     <img src={pack.floor.imageDataUrl} alt={`${pack.event.name} floor plan`} draggable={false} />
     <svg className={`map-overlay tool-${activeTool}`} viewBox={`0 0 ${imageWidth} ${imageHeight}`} preserveAspectRatio="none"
       onClick={(event) => { if (event.target === event.currentTarget) onMapClick?.(pointerPoint(event)); }}
@@ -57,5 +73,12 @@ export function MapCanvas({ pack, activeTool = 'select', selection, route, calib
       })}
       {calibrationPoints.map((point, index) => <g key={index} className="calibration-point" transform={`translate(${toX(point.x)} ${toY(point.y)}) scale(${markerScale})`}><circle r="18" vectorEffect="non-scaling-stroke"/><text y="7" textAnchor="middle">{index + 1}</text></g>)}
     </svg>
+    </div>
+    </div>
+    <div className="map-zoom-controls" role="group" aria-label="Map zoom">
+      <button type="button" aria-label="Zoom in" onClick={() => applyZoom(zoom * 1.5)}>+</button>
+      <button type="button" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => applyZoom(zoom / 1.5)}>−</button>
+      {zoom > 1 ? <button type="button" className="zoom-reset" aria-label="Reset zoom" onClick={() => applyZoom(1)}>1×</button> : null}
+    </div>
   </div>;
 }
