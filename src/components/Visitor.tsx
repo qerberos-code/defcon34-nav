@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { buildDefconPack } from '../defcon/pack';
 import { createDemoPack } from '../demo';
 import { parseNavPack } from '../lib/navpack';
 import { analyzeNavPackReadiness } from '../lib/readiness';
@@ -16,6 +17,7 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const [state, setState] = useState<VisitorState | null | undefined>(undefined);
   const [message, setMessage] = useState('');
   const [scannerIntent, setScannerIntent] = useState<ScannerIntent | null>(() => initialScannerIntent ?? null);
+  const [defconLoading, setDefconLoading] = useState(false);
   useEffect(() => {
     let current = true;
     void loadVisitor().then((saved) => { if (current) setState(saved); }).catch((error: unknown) => { if (current) { setState(null); setMessage(error instanceof Error ? error.message : 'Offline storage is unavailable.'); } });
@@ -27,6 +29,12 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
     await saveVisitor(next); setState(next); setMessage(nextMessage);
   }, []);
   const closeScanner = useCallback(() => { setScannerIntent(null); onLegacyScannerClose?.(); }, [onLegacyScannerClose]);
+  const loadDefconMap = async () => {
+    setDefconLoading(true);
+    try { const pack = await buildDefconPack(); await applyVisitorState({ pack }, 'DEF CON 34 map loaded — pick where you are.'); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Could not load the DEF CON 34 map.'); }
+    finally { setDefconLoading(false); }
+  };
   const importFile = async (file?: File) => {
     if (!file) return;
     try { const pack = parseNavPack(await file.text()); await applyVisitorState({ pack }, `${pack.event.name} imported and saved offline.`); }
@@ -45,7 +53,7 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const scanner = scannerIntent ? <Suspense fallback={<div className="modal-backdrop"><div className="scanner-card"><p>Loading offline QR decoder…</p></div></div>}><WaypointScanner intent={scannerIntent} visitorState={state ?? null} onApply={applyVisitorState} onClose={closeScanner} /></Suspense> : null;
 
   if (state === undefined) return <main className="visitor-empty"><div className="welcome-card"><p>Loading offline event…</p></div>{scanner}</main>;
-  if (!state) return <main className="visitor-empty"><div className="welcome-card"><div className="welcome-mark">W</div><p className="eyebrow">Visitor navigation</p><h1>Find your way — even offline.</h1><p>Scan the organizer's animated <strong>location QR</strong>, or import its <strong>.navpack</strong>. Your map and latest checkpoint stay on this device.</p><button className="button accent large full" onClick={() => setScannerIntent('location')}>Scan location QR</button><label className="button primary large full"><input type="file" accept=".navpack,application/x-navpack,application/json" onChange={(event) => void importFile(event.target.files?.[0])} />Import event navpack</label><button className="button text-button" onClick={() => { const pack = createDemoPack(); void applyVisitorState({ pack, checkpointId: 'c-registration', targetCheckpointId: 'c-booth8' }, 'Demo location loaded.'); }}>Try the demo event</button>{message ? <div className="notice">{message}</div> : null}</div>{scanner}</main>;
+  if (!state) return <main className="visitor-empty"><div className="welcome-card"><div className="welcome-mark">W</div><p className="eyebrow">Visitor navigation</p><h1>Find your way around DEF CON 34 — even offline.</h1><p>Load the built-in DEF CON 34 map, scan the organizer's animated <strong>location QR</strong>, or import its <strong>.navpack</strong>. Your map and latest checkpoint stay on this device.</p><button className="button accent large full" disabled={defconLoading} onClick={() => void loadDefconMap()}>{defconLoading ? 'Loading DEF CON 34 map…' : 'Load DEF CON 34 map'}</button><button className="button primary large full" onClick={() => setScannerIntent('location')}>Scan location QR</button><label className="button primary large full"><input type="file" accept=".navpack,application/x-navpack,application/json" onChange={(event) => void importFile(event.target.files?.[0])} />Import event navpack</label><button className="button text-button" onClick={() => { const pack = createDemoPack(); void applyVisitorState({ pack, checkpointId: 'c-registration', targetCheckpointId: 'c-booth8' }, 'Demo location loaded.'); }}>Try the demo event</button>{message ? <div className="notice">{message}</div> : null}</div>{scanner}</main>;
 
   const hasCheckpoints = state.pack.checkpoints.length > 0;
   const canChooseTarget = state.pack.checkpoints.length > 1;

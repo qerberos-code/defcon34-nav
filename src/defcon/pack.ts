@@ -1,0 +1,32 @@
+import type { NavPack } from '../types';
+import { MAP_HEIGHT, MAP_WIDTH, defconCheckpoints, defconEdges, defconNodes } from './data';
+
+export function assemblePack(imageDataUrl: string): NavPack {
+  return {
+    version: 1,
+    event: { id: 'defcon34', name: 'DEF CON 34 · LVCC', createdAt: '2026-08-04T00:00:00.000Z' },
+    floor: { id: 'lvcc-all', name: 'LVCC West Hall (Floors 1–3)', imageDataUrl, imageWidth: MAP_WIDTH, imageHeight: MAP_HEIGHT },
+    nodes: defconNodes,
+    edges: defconEdges,
+    destinations: [],
+    checkpoints: defconCheckpoints,
+  };
+}
+
+export async function buildDefconPack(): Promise<NavPack> {
+  let blob: Blob;
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}defcon34-map.jpg`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    blob = await response.blob();
+  } catch {
+    throw new Error('Could not load the DEF CON 34 map image. Check your connection and reload the app once online.');
+  }
+  const imageDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read the DEF CON 34 map image data.'));
+    reader.readAsDataURL(blob);
+  });
+  return assemblePack(imageDataUrl);
+}
