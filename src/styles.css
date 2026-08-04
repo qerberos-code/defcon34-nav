@@ -180,3 +180,4 @@ input:focus,select:focus { border-color:#24747a; box-shadow:0 0 0 3px rgba(36,11
 .map-zoom-controls button:disabled { opacity:.4; }
 .map-zoom-controls .zoom-reset { font-size:14px; }
 @media (max-width:680px) { .map-shell { margin:10px; width:calc(100% - 20px); } .visitor-map .map-shell { margin:0; width:100%; } }
+.brand-icon { width:38px; height:38px; border-radius:8px; display:block; }

@@ -1,3 +1,5 @@
+<img src="public/brand/icon-192.png" width="96" align="right" alt="DC34 NAV logo" />
+
 # DC34 NAV — DEF CON 34 offline navigator
 
 Offline indoor navigation for **DEF CON 34** at the Las Vegas Convention Center (Aug 6–9, 2026). Open the app, pick where you are and where you're going, get the shortest walking route — across all 3 floors, with zero network, zero accounts, zero tracking.
@@ -12,10 +14,23 @@ Built on [**Waypoint**](https://github.com/Pizzawookiee/Waypoint) (see Credits).
 ## How to use
 
 1. Open the app — the DEF CON 34 map loads automatically with all 61 checkpoints (villages, tracks, stages, registration, food, escalators).
-2. **Where are you?** Pick the nearest labeled area from the *Current checkpoint* dropdown (e.g. `Registration · REG`). A "You are here" marker appears.
-3. **Where are you going?** Pick any destination checkpoint (e.g. `Packet Hacking Village · PKT`). The shortest route draws on the map — cross-floor routes go via the Escalators checkpoints (follow the line to the escalator, ride to the target floor, continue).
-4. Use the **+ / − / 1×** buttons on the map to zoom and drag to pan.
-5. As you walk, update your current checkpoint whenever you pass a labeled area — the route recalculates.
+2. **Where are you?** Pick the nearest labeled area from the *Current checkpoint* dropdown (e.g. `Registration · REG`). A "You are here" marker appears on the map.
+3. **Where are you going?** Pick any destination checkpoint (e.g. `Packet Hacking Village · PKT`). The shortest route draws on the map instantly.
+4. **Changing floors**: cross-floor routes pass through the *Escalators* checkpoints — follow the route line to the escalator on your floor, ride up/down, and pick the line up again on the target floor's drawing.
+5. **Zoom**: tap **+ / −** on the map to zoom (up to 6×), drag to pan, **1×** to reset. Around 2× the individual booth numbers become readable.
+6. As you walk, re-select your current checkpoint whenever you pass a labeled area — the route recalculates from there.
+
+### Reading the map
+
+| Symbol | Meaning |
+|---|---|
+| ▲ dark triangle with **C** | A **checkpoint** — a labeled place you can select as your location or destination (every village, track, stage, and service is one) |
+| ▲ **gold** triangle | **You are here** — your currently selected checkpoint |
+| ▲ highlighted triangle | Your **destination** |
+| **Orange line** | Your shortest walking route |
+| *Escalators (Floor 1/2/3)* checkpoints | The floor connectors — the only places routes jump between the three floor drawings |
+
+The "C" symbol comes from the underlying Waypoint engine, where checkpoints double as printed QR signs. DEF CON has no such signage, so in this app they are simply the selectable places on the map — QR scanning may return as a future feature.
 
 Everything is stored on-device; the map keeps working in the deepest Wi-Fi dead zone in Hall 3.
 
