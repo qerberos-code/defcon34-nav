@@ -20,7 +20,13 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
   const [defconLoading, setDefconLoading] = useState(false);
   useEffect(() => {
     let current = true;
-    void loadVisitor().then((saved) => { if (current) setState(saved); }).catch((error: unknown) => { if (current) { setState(null); setMessage(error instanceof Error ? error.message : 'Offline storage is unavailable.'); } });
+    void loadVisitor().then(async (saved) => {
+      if (!current) return;
+      if (saved) { setState(saved); return; }
+      // No saved state: DEF CON 34 is the default map. Welcome screen is the error fallback.
+      try { const pack = await buildDefconPack(); await saveVisitor({ pack }); if (current) { setState({ pack }); setMessage('DEF CON 34 map loaded — pick where you are.'); } }
+      catch (error) { if (current) { setState(null); setMessage(error instanceof Error ? error.message : 'Could not load the DEF CON 34 map.'); } }
+    }).catch((error: unknown) => { if (current) { setState(null); setMessage(error instanceof Error ? error.message : 'Offline storage is unavailable.'); } });
     return () => { current = false; };
   }, []);
   useEffect(() => { if (initialScannerIntent) setScannerIntent(initialScannerIntent); }, [initialScannerIntent]);

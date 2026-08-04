@@ -6,7 +6,7 @@ import { Visitor } from './components/Visitor';
 const OpticalSender = lazy(() => import('./components/OpticalSender'));
 
 type Mode = 'organizer' | 'visitor';
-function route(): string { return location.hash.replace(/^#\/?/, '') || 'organizer'; }
+function route(): string { return location.hash.replace(/^#\/?/, '') || 'visitor'; }
 const closeLegacyScanner = () => { location.hash = '/visitor'; };
 
 export default function App() {
