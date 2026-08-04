@@ -4,6 +4,11 @@ Offline indoor navigation for **DEF CON 34** at the Las Vegas Convention Center 
 
 Built on [**Waypoint**](https://github.com/Pizzawookiee/Waypoint) (see Credits).
 
+<p align="center">
+  <img src="docs/screenshots/route-overview.png" width="45%" alt="Cross-floor route from Track 4 to Packet Hacking Village on the DEF CON 34 LVCC map" />
+  <img src="docs/screenshots/route-zoomed.png" width="45%" alt="Zoomed map view showing readable booth-level detail and the route line" />
+</p>
+
 ## How to use
 
 1. Open the app — the DEF CON 34 map loads automatically with all 61 checkpoints (villages, tracks, stages, registration, food, escalators).
