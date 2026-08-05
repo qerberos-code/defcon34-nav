@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 220" width="560" height="220" font-family="&#39;JetBrains Mono&#39;,ui-monospace,monospace" font-weight="800">
+  
+  
+  <text x="40" y="158" font-size="144" letter-spacing="-10" fill="#111417">DC</text>
+  <rect x="300" y="46" width="212" height="128" fill="#111417"></rect>
+  <text x="318" y="158" font-size="144" letter-spacing="-10" fill="#eceff0">34</text>
+  <g transform="translate(482,16) scale(2.5)"><path d="M12 2 L4 22 L12 17 L20 22 Z" fill="#9b5de5"></path></g>
+</svg>

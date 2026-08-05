@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DC34 NAV</string>
+    <string name="title_activity_main">DC34 NAV</string>
+    <string name="package_name">com.qerberos.dc34nav</string>
+    <string name="custom_url_scheme">com.qerberos.dc34nav</string>
+</resources>
