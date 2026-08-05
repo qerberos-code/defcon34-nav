@@ -39,16 +39,27 @@ const spineNodes: Record<Floor, RouteNode[]> = {
   ],
 };
 
-// Chains of node ids joined by consecutive edges. The final chain (the escalators) holds the ONLY cross-floor edges.
-const spineChains: string[][] = [
-  ['f1-s1', 'f1-s2', 'f1-s3', 'f1-s4', 'f1-s5', 'f1-s6', 'f1-s7'],
-  ['f1-s3', 'f1-a1e'], ['f1-s4', 'f1-a2e'], ['f1-s5', 'f1-a3e'], ['f1-s6', 'f1-a4e'], ['f1-s7', 'f1-a5e'],
-  ['f1-atrium', 'f1-s5'],
-  ['f2-entry', 'f2-l1', 'f2-l2', 'f2-l3', 'f2-l4', 'f2-l5', 'f2-l6', 'f2-r1', 'f2-r2', 'f2-r3', 'f2-r4'],
-  ['f2-l4', 'f2-r2'], // crossbar between the legs near Workshops
-  ['f3-entry', 'f3-s1', 'f3-s2', 'f3-s3', 'f3-s4', 'f3-s5', 'f3-r1', 'f3-r2'],
-  ['f1-atrium', 'f2-entry', 'f3-entry'], // Escalators — only cross-floor edges
-];
+// Walkable corridor polylines per floor. POIs never attach to these diagonally:
+// each POI gets a "door" node projected perpendicularly onto its nearest corridor
+// segment, so a connector crosses (at most) the POI's own block — never a
+// neighboring village. Doors are then chained INTO the corridor in order.
+const corridorChains: Record<Floor, string[][]> = {
+  1: [
+    ['f1-s1', 'f1-s2', 'f1-s3', 'f1-s4', 'f1-s5', 'f1-s6', 'f1-s7'], // west-edge corridor
+    ['f1-s3', 'f1-a1e'], ['f1-s4', 'f1-a2e'], ['f1-s5', 'f1-a3e'], ['f1-s6', 'f1-a4e'], ['f1-s7', 'f1-a5e'], // aisles between hall rows
+    ['f1-a1e', 'f1-a2e', 'f1-a3e', 'f1-a4e', 'f1-a5e'], // east wedge-margin corridor
+    ['f1-atrium', 'f1-s5'],
+  ],
+  2: [
+    ['f2-entry', 'f2-l1', 'f2-l2', 'f2-l3', 'f2-l4', 'f2-l5', 'f2-l6', 'f2-r1', 'f2-r2', 'f2-r3', 'f2-r4'],
+    ['f2-l4', 'f2-r2'], // crossbar between the legs near Workshops
+  ],
+  3: [
+    ['f3-entry', 'f3-s1', 'f3-s2', 'f3-s3', 'f3-s4', 'f3-s5', 'f3-r1', 'f3-r2'],
+  ],
+};
+
+const escalatorChain = ['f1-atrium', 'f2-entry', 'f3-entry']; // the ONLY cross-floor edges
 
 // --- POIs (docs/research/lvcc-maps.md) --------------------------------------
 
@@ -120,28 +131,79 @@ const pois: Poi[] = [
 
 // --- Graph assembly ---------------------------------------------------------
 
-function nearestSpineNodeId(poi: Poi): string {
-  let bestId = spineNodes[poi.floor][0].id;
-  let best = Infinity;
-  for (const node of spineNodes[poi.floor]) {
-    const distance = Math.hypot((poi.x - node.x) * MAP_WIDTH, (poi.y - node.y) * MAP_HEIGHT);
-    if (distance < best) { best = distance; bestId = node.id; }
-  }
-  return bestId;
-}
-
 const poiNodeId = (poi: Poi): string => `poi-${poi.code.toLowerCase()}`;
 const makeEdge = (fromNodeId: string, toNodeId: string): RouteEdge => ({ id: `e-${fromNodeId}--${toNodeId}`, fromNodeId, toNodeId, accessible: true });
 
-export const defconNodes: RouteNode[] = [
-  ...spineNodes[1], ...spineNodes[2], ...spineNodes[3],
-  ...pois.map((poi) => ({ id: poiNodeId(poi), x: poi.x, y: poi.y })),
-];
+// Perpendicular projection of a POI onto each corridor segment of its floor
+// (aspect-corrected pixel space). Returns the closest hit.
+interface DoorHit { chainIndex: number; segmentIndex: number; t: number; x: number; y: number; distance: number }
+function projectPoi(poi: Poi, nodeById: Map<string, RouteNode>): DoorHit {
+  let best: DoorHit | null = null;
+  corridorChains[poi.floor].forEach((chain, chainIndex) => {
+    for (let segmentIndex = 0; segmentIndex < chain.length - 1; segmentIndex++) {
+      const a = nodeById.get(chain[segmentIndex])!;
+      const b = nodeById.get(chain[segmentIndex + 1])!;
+      const ax = a.x * MAP_WIDTH, ay = a.y * MAP_HEIGHT, bx = b.x * MAP_WIDTH, by = b.y * MAP_HEIGHT;
+      const px = poi.x * MAP_WIDTH, py = poi.y * MAP_HEIGHT;
+      const lengthSq = (bx - ax) ** 2 + (by - ay) ** 2;
+      const t = lengthSq === 0 ? 0 : Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / lengthSq));
+      const hx = ax + t * (bx - ax), hy = ay + t * (by - ay);
+      const distance = Math.hypot(px - hx, py - hy);
+      if (!best || distance < best.distance) best = { chainIndex, segmentIndex, t, x: hx / MAP_WIDTH, y: hy / MAP_HEIGHT, distance };
+    }
+  });
+  return best!;
+}
 
-export const defconEdges: RouteEdge[] = [
-  ...spineChains.flatMap((chain) => chain.slice(1).map((toNodeId, index) => makeEdge(chain[index], toNodeId))),
-  ...pois.flatMap((poi) => (poi.attachTo ?? [nearestSpineNodeId(poi)]).map((spineId) => makeEdge(poiNodeId(poi), spineId))),
-];
+function assembleGraph(): { nodes: RouteNode[]; edges: RouteEdge[] } {
+  const spine = [...spineNodes[1], ...spineNodes[2], ...spineNodes[3]];
+  const nodeById = new Map(spine.map((node) => [node.id, node]));
+  const doorNodes: RouteNode[] = [];
+  const poiEdges: RouteEdge[] = [];
+  // door insertions per floor/chain/segment, ordered later by t
+  const inserted = new Map<string, { t: number; id: string }[]>();
+  const END_SNAP = 0.02; // within 2% of a segment end → reuse the endpoint node
+
+  for (const poi of pois) {
+    const poiId = poiNodeId(poi);
+    if (poi.attachTo) { poi.attachTo.forEach((target) => poiEdges.push(makeEdge(poiId, target))); continue; }
+    const hit = projectPoi(poi, nodeById);
+    const chain = corridorChains[poi.floor][hit.chainIndex];
+    if (hit.t <= END_SNAP) { poiEdges.push(makeEdge(poiId, chain[hit.segmentIndex])); continue; }
+    if (hit.t >= 1 - END_SNAP) { poiEdges.push(makeEdge(poiId, chain[hit.segmentIndex + 1])); continue; }
+    const doorId = `door-${poi.code.toLowerCase()}`;
+    doorNodes.push({ id: doorId, x: hit.x, y: hit.y });
+    poiEdges.push(makeEdge(poiId, doorId));
+    const key = `${poi.floor}:${hit.chainIndex}:${hit.segmentIndex}`;
+    if (!inserted.has(key)) inserted.set(key, []);
+    inserted.get(key)!.push({ t: hit.t, id: doorId });
+  }
+
+  // Corridor edges with doors spliced in, in order of t along each segment.
+  const corridorEdges: RouteEdge[] = [];
+  (Object.keys(corridorChains) as unknown as Floor[]).forEach((floor) => {
+    corridorChains[floor].forEach((chain, chainIndex) => {
+      for (let segmentIndex = 0; segmentIndex < chain.length - 1; segmentIndex++) {
+        const doors = (inserted.get(`${floor}:${chainIndex}:${segmentIndex}`) ?? []).sort((a, b) => a.t - b.t);
+        const sequence = [chain[segmentIndex], ...doors.map((door) => door.id), chain[segmentIndex + 1]];
+        for (let i = 0; i < sequence.length - 1; i++) corridorEdges.push(makeEdge(sequence[i], sequence[i + 1]));
+      }
+    });
+  });
+
+  return {
+    nodes: [...spine, ...doorNodes, ...pois.map((poi) => ({ id: poiNodeId(poi), x: poi.x, y: poi.y }))],
+    edges: [
+      ...corridorEdges,
+      ...escalatorChain.slice(1).map((toNodeId, index) => makeEdge(escalatorChain[index], toNodeId)),
+      ...poiEdges,
+    ],
+  };
+}
+
+const graph = assembleGraph();
+export const defconNodes: RouteNode[] = graph.nodes;
+export const defconEdges: RouteEdge[] = graph.edges;
 
 export const defconCheckpoints: Checkpoint[] = [
   ...pois.map((poi) => ({ id: `cp-${poi.code.toLowerCase()}`, label: poi.label, shortCode: poi.code, x: poi.x, y: poi.y, routeNodeId: poiNodeId(poi) })),

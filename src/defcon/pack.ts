@@ -1,10 +1,14 @@
 import type { NavPack } from '../types';
 import { MAP_HEIGHT, MAP_WIDTH, defconCheckpoints, defconEdges, defconNodes } from './data';
 
+// Bump the suffix whenever the bundled map/graph data changes: visitors with an
+// older saved DC34 pack get it transparently rebuilt on next launch.
+export const DEFCON_EVENT_ID = 'defcon34-v2';
+
 export function assemblePack(imageDataUrl: string): NavPack {
   return {
     version: 1,
-    event: { id: 'defcon34', name: 'DEF CON 34 · LVCC', createdAt: '2026-08-04T00:00:00.000Z' },
+    event: { id: DEFCON_EVENT_ID, name: 'DEF CON 34 · LVCC', createdAt: '2026-08-04T00:00:00.000Z' },
     // Calibration is approximate: LVCC West Hall's Floor 1 drawing spans ~180m
     // over ~1800px of the 3600px poster (~0.1 m/px). Floors 2–3 are drawn at a
     // slightly different scale, so distances are estimates, not measurements.

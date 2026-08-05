@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { validateNavPack } from '../lib/navpack';
-import { assemblePack } from './pack';
+import { assemblePack, DEFCON_EVENT_ID } from './pack';
 
 const fixture = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
@@ -8,7 +8,7 @@ describe('defcon34 pack', () => {
   it('assembles a pack that passes navpack validation', () => {
     expect(() => validateNavPack(assemblePack(fixture))).not.toThrow();
     const pack = assemblePack(fixture);
-    expect(pack.event.id).toBe('defcon34');
+    expect(pack.event.id).toBe(DEFCON_EVENT_ID);
     expect(pack.destinations).toEqual([]);
   });
 

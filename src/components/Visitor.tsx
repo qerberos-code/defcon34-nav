@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { buildDirections } from '../defcon/directions';
-import { buildDefconPack } from '../defcon/pack';
+import { buildDefconPack, DEFCON_EVENT_ID } from '../defcon/pack';
 import { createDemoPack } from '../demo';
 import { parseNavPack } from '../lib/navpack';
 import { analyzeNavPackReadiness } from '../lib/readiness';
@@ -42,7 +42,14 @@ export function Visitor({ initialScannerIntent, onLegacyScannerClose }: Props) {
     let current = true;
     void loadVisitor().then(async (saved) => {
       if (!current) return;
-      if (saved) { setState(saved); return; }
+      if (saved) {
+        // Stale bundled DC34 pack (older data version) → rebuild it in place, keeping the user's selections.
+        if (saved.pack.event.id.startsWith('defcon34') && saved.pack.event.id !== DEFCON_EVENT_ID) {
+          try { const pack = await buildDefconPack(); const next = { ...saved, pack }; await saveVisitor(next); if (current) setState(next); return; }
+          catch { /* fall through to the saved pack */ }
+        }
+        setState(saved); return;
+      }
       // No saved state: DEF CON 34 is the default map. Welcome screen is the error fallback.
       try { const pack = await buildDefconPack(); await saveVisitor({ pack }); if (current) { setState({ pack }); setMessage('DEF CON 34 map loaded — pick where you are.'); } }
       catch (error) { if (current) { setState(null); setMessage(error instanceof Error ? error.message : 'Could not load the DEF CON 34 map.'); } }
